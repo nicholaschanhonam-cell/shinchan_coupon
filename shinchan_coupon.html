@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>專屬廚師換領券</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: #fff9e6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 背景圖案裝飾 */
+    .bg-decor {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      background-image: 
+        radial-gradient(#ffd43b 2px, transparent 2px),
+        radial-gradient(#ff6b6b 1.5px, transparent 1.5px);
+      background-size: 36px 36px;
+      background-position: 0 0, 18px 18px;
+      opacity: 0.35;
+    }
+
+    /* 頂部提示文字 */
+    .hint-text {
+      position: absolute;
+      top: 35px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #d97706;
+      text-align: center;
+      z-index: 10;
+      transition: opacity 0.5s ease;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 8px 18px;
+      border-radius: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    /* 信封舞台區域 */
+    .stage {
+      position: relative;
+      width: 92%;
+      max-width: 440px;
+      height: 220px;
+      margin-top: 40px;
+      z-index: 1;
+    }
+
+    /* 黃色信封本體 */
+    .envelope {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 200px;
+      background: #ffd43b;
+      border-radius: 14px;
+      box-shadow: 0 15px 35px rgba(217, 119, 6, 0.25);
+      border: 4px solid #f59e0b;
+      cursor: pointer;
+    }
+
+    /* 信封頂蓋 (Flap) - 未開啟時完美覆蓋全信封 */
+    .envelope-flap {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 0;
+      border-left: 215px solid transparent;
+      border-right: 215px solid transparent;
+      border-top: 130px solid #f59e0b;
+      transform-origin: top center;
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 5;
+    }
+
+    /* 封口紅鈕扣貼紙 */
+    .seal-sticker {
+      position: absolute;
+      top: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 55px;
+      height: 55px;
+      background: #ef4444;
+      border-radius: 50%;
+      border: 3px solid #ffffff;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+      z-index: 6;
+      transition: opacity 0.4s ease;
+    }
+
+    /* 信封口袋前層 */
+    .envelope-pocket {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 140px;
+      background: #facc15;
+      border-radius: 0 0 10px 10px;
+      clip-path: polygon(0 15%, 50% 0, 100% 15%, 100% 100%, 0 100%);
+      z-index: 4;
+      border-top: 2px solid #eab308;
+    }
+
+    /* 圖片本體（未打開時完全隱藏：opacity: 0 + 縮在口袋深處） */
+    .coupon-img {
+      position: absolute;
+      bottom: 10px;
+      left: 3%;
+      width: 94%;
+      height: auto;
+      border-radius: 8px;
+      display: block;
+      z-index: 3;
+      opacity: 0; /* 完全隱藏內容 */
+      transform: translateY(20px);
+      transition: transform 0.7s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    /* 向上拉出指引標籤 */
+    .pull-tag {
+      position: absolute;
+      top: -35px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ef4444;
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 4px 12px;
+      border-radius: 12px;
+      white-space: nowrap;
+      animation: bounce 1.2s infinite;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translate(-50%, 0); }
+      50% { transform: translate(-50%, -6px); }
+    }
+
+    /* --- 開啟與拉出狀態 --- */
+
+    /* 1. 信封打開：蓋子掀開，圖片露出 */
+    .envelope.open .envelope-flap {
+      transform: rotateX(180deg);
+      z-index: 2;
+    }
+
+    .envelope.open .seal-sticker {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .envelope.open ~ .coupon-img {
+      opacity: 1; /* 打開後才顯示圖片 */
+      transform: translateY(-25px); /* 微上升方便點擊/向上滑 */
+    }
+
+    .envelope.open ~ .coupon-img .pull-tag {
+      opacity: 1;
+    }
+
+    /* 2. 抽出卡片：完全無外框，直接放大圖片 */
+    .stage.pulled .coupon-img {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 95vw;
+      max-width: 700px;
+      z-index: 100;
+      box-shadow: 0 15px 45px rgba(0,0,0,0.35);
+    }
+
+    .stage.pulled .pull-tag {
+      display: none;
+    }
+
+    .stage.pulled .envelope {
+      opacity: 0.2;
+      transition: opacity 0.6s ease;
+    }
+
+    /* 背景暗化遮罩 */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.5);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.6s ease;
+      z-index: 90;
+    }
+
+    .stage.pulled ~ .overlay {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-decor"></div>
+
+  <div class="hint-text" id="hintText">點擊信封開啟驚喜 ✉️</div>
+
+  <div class="stage" id="stage">
+    <div class="envelope" id="envelope" onclick="openEnvelope()">
+      <div class="envelope-flap"></div>
+      <div class="seal-sticker">開啟</div>
+      <div class="envelope-pocket"></div>
+    </div>
+
+    <!-- 票券圖片（無額外外框） -->
+    <img class="coupon-img" id="couponImg" src="shinchan_coupon.png" alt="專屬廚師換領券" onclick="pullCard()">
+      <div class="pull-tag" id="pullTag">▲ 向上拉出卡片 ▲</div>
+    </img>
+  </div>
+
+  <div class="overlay" id="overlay"></div>
+
+  <script>
+    let isOpen = false;
+    let isPulled = false;
+
+    function openEnvelope() {
+      if (!isOpen) {
+        isOpen = true;
+        document.getElementById('envelope').classList.add('open');
+        document.getElementById('hintText').innerText = "點擊或向上滑動卡片拉出 👆";
+      }
+    }
+
+    function pullCard() {
+      if (isOpen && !isPulled) {
+        isPulled = true;
+        document.getElementById('stage').classList.add('pulled');
+        document.getElementById('hintText').innerText = "生日快樂！專屬換領券已生效 🎂";
+      }
+    }
+
+    // 支援手機觸控向上滑動拉出
+    let startY = 0;
+    const imgEl = document.getElementById('couponImg');
+
+    imgEl.addEventListener('touchstart', (e) => {
+      startY = e.touches[0].clientY;
+    }, {passive: true});
+
+    imgEl.addEventListener('touchend', (e) => {
+      let endY = e.changedTouches[0].clientY;
+      if (isOpen && !isPulled && (startY - endY > 20)) {
+        pullCard();
+      }
+    }, {passive: true});
+  </script>
+</body>
+</html>
